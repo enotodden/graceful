@@ -6,12 +6,9 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
-	"github.com/stretchr/pat/stop"
 	"golang.org/x/net/netutil"
 )
 
@@ -48,11 +45,11 @@ type Server struct {
 
 	// interrupt signals the listener to stop serving connections,
 	// and the server to shut down.
-	interrupt chan os.Signal
+	interrupt chan bool
 
 	// stopChan is the channel on which callers may block while waiting for
 	// the server to stop.
-	stopChan chan stop.Signal
+	stopChan chan bool
 
 	// stopChanOnce is used to create the stop channel on demand, once, per
 	// instance.
@@ -61,9 +58,6 @@ type Server struct {
 	// connections holds all connections managed by graceful
 	connections map[net.Conn]struct{}
 }
-
-// ensure Server conforms to stop.Stopper
-var _ stop.Stopper = (*Server)(nil)
 
 // Run serves the http.Handler with graceful shutdown enabled.
 //
@@ -210,11 +204,10 @@ func (srv *Server) Serve(listener net.Listener) error {
 	}()
 
 	if srv.interrupt == nil {
-		srv.interrupt = make(chan os.Signal, 1)
+		srv.interrupt = make(chan bool, 1)
 	}
 
 	// Set up the interrupt catch
-	signal.Notify(srv.interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-srv.interrupt
 		srv.SetKeepAlivesEnabled(false)
@@ -224,7 +217,6 @@ func (srv *Server) Serve(listener net.Listener) error {
 			srv.ShutdownInitiated()
 		}
 
-		signal.Stop(srv.interrupt)
 		close(srv.interrupt)
 	}()
 
@@ -261,16 +253,16 @@ func (srv *Server) Serve(listener net.Listener) error {
 // command to stop the server.
 func (srv *Server) Stop(timeout time.Duration) {
 	srv.Timeout = timeout
-	srv.interrupt <- syscall.SIGINT
+	srv.interrupt <- true
 }
 
 // StopChan gets the stop channel which will block until
 // stopping has completed, at which point it is closed.
 // Callers should never close the stop channel.
-func (srv *Server) StopChan() <-chan stop.Signal {
+func (srv *Server) StopChan() <-chan bool {
 	srv.stopChanOnce.Do(func() {
 		if srv.stopChan == nil {
-			srv.stopChan = stop.Make()
+			srv.stopChan = make(chan bool, 1)
 		}
 	})
 	return srv.stopChan
