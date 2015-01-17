@@ -1,6 +1,6 @@
 #### Note: This is a fork of stretchr/graceful with signal handling removed.
 
-graceful [![GoDoc](https://godoc.org/github.com/stretchr/graceful?status.png)](http://godoc.org/github.com/stretchr/graceful) [![wercker status](https://app.wercker.com/status/2729ba763abf87695a17547e0f7af4a4/s "wercker status")](https://app.wercker.com/project/bykey/2729ba763abf87695a17547e0f7af4a4)
+graceful [![GoDoc](https://godoc.org/github.com/enotodden/graceful?status.png)](http://godoc.org/github.com/enotodden/graceful)
 ========
 
 Graceful is a Go 1.3+ package enabling graceful shutdown of http.Handler servers.
